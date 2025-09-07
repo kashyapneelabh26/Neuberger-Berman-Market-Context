@@ -1,0 +1,6 @@
+{
+  "role": "system",
+  "version": "1.0.0",
+  "temperature": 0.0,
+  "required_vars": []
+}

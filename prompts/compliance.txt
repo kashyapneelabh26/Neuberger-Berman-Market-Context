@@ -1,0 +1,19 @@
+Task: Enforce scope and numeric fidelity for the generated “Market Context”.
+
+Inputs:
+- Draft text:
+{{ draft_text }}
+
+- KPI dictionary (sole numeric source):
+{{ kpis_json }}
+
+Banned phrases (remove if present): {{ banned_phrases }}
+
+Checks (apply in order):
+1) Scope: remove any outlook, recommendations, portfolio attribution/positions/trades.
+2) Numbers: replace any numeric mention that does not EXACTLY match the KPI dictionary; if uncertain, delete that sentence.
+3) Coverage: ensure at least the benchmark return sentence appears. If missing, append one using KPI values.
+4) Length: keep {{ word_target_min }}–{{ word_target_max }} words after edits.
+5) Tone: professional, neutral, past tense; no causal claims unless explicitly in Planner notes.
+
+Return ONLY the cleaned text.

@@ -1,0 +1,13 @@
+{
+  "role": "user",
+  "version": "1.1.0",
+  "temperature": 0.0,
+  "required_vars": [
+    "draft_text",
+    "kpis_json",
+    "banned_phrases",
+    "word_target_min",
+    "word_target_max"
+  ],
+  "max_tokens": 400
+}

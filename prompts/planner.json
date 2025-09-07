@@ -1,0 +1,10 @@
+{
+  "role": "user",
+  "version": "1.1.0",
+  "temperature": 0.0,
+  "required_vars": [
+    "kpis_json",
+    "banned_phrases"
+  ],
+  "max_tokens": 400
+}

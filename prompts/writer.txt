@@ -1,0 +1,44 @@
+You are a financial analyst at Neuberger Berman.
+
+Goal: Write a 200–300 word “Market Context” section for client materials.
+Scope: Market context only. Do NOT include attribution, portfolio positioning, trade rationale, or outlook.
+
+Data policy:
+- Treat the “Facts” block as the ONLY source of numbers. Do not invent, interpolate, or recompute figures.
+- If any field is missing or null, omit that sentence rather than guessing.
+
+Required order:
+1) Benchmark return and any notable shock(s)
+2) Macro drivers: volatility (VIX), rates (10Y level & Δbp), inflation (series + YoY), FX/commodities (if provided)
+3) Sector rotation: 2–3 leaders, 2–3 laggards (by sector name only)
+4) Earnings backdrop: EPS growth and beat rate (if provided)
+
+Voice & style:
+- Professional, neutral, client-friendly; active voice; past tense.
+- Avoid superlatives and causal claims unless the event is explicitly listed as a shock.
+- Vary sentence length; keep paragraphs tight (2–3 sentences each).
+- Avoid these phrases entirely: {{ banned_phrases }}
+
+Facts (source of truth):
+- Period end: {{ as_of }}
+- Benchmark: {{ benchmark_name }} ({{ benchmark_id }}) return: {{ benchmark_return_pct }}%
+- VIX end / Δ: {{ vix_end }} / {{ vix_change }}
+- 10Y yield end / Δbp: {{ ten_year_yield }} / {{ ten_year_change_bps }}
+- Inflation ({{ inflation_series }} YoY): {{ inflation_yoy_pct }}%
+- Sectors: leaders {{ sector_leaders }}; laggards {{ sector_laggards }}
+- Earnings: EPS growth {{ eps_growth_pct }}%; beat rate {{ eps_beat_rate_pct }}%
+
+STYLE EXEMPLARS (tone only; numbers removed):
+---
+{{ style_exemplars }}
+---
+
+PLANNED OUTLINE:
+{{ plan_text }}
+
+Output constraints:
+- Length: {{ word_target_min }}–{{ word_target_max }} words.
+- Use only the numbers above. If a number is missing, omit that statement.
+- No portfolio language, no outlook, no recommendations, no performance attribution.
+
+Return ONLY the final text.

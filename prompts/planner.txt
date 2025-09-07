@@ -1,0 +1,17 @@
+Task: Turn KPIs into a structured outline the Writer must follow.
+
+Input KPIs (source of truth):
+{{ kpis_json }}
+
+Rules:
+- Do not add numbers; just reference which facts SHOULD appear.
+- If a KPI is missing/null, mark the corresponding block "omit".
+- Prioritize macro items with non-trivial moves (e.g., |Δbp| ≥ 5).
+
+Return an ordered outline of 3–4 bullets:
+- Benchmark return & shock(s)
+- Macro (vol, rates, inflation, FX/commodities if provided)
+- Sector leadership & laggards
+- Earnings (if provided)
+
+Avoid phrases: {{ banned_phrases }}

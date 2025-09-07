@@ -1,0 +1,36 @@
+{
+  "role": "user",
+  "version": "1.1.0",
+  "temperature": 0.2,
+  "max_tokens": 900,
+  "required_vars": [
+    "as_of",
+    "benchmark_name",
+    "benchmark_id",
+    "benchmark_return_pct",
+    "vix_end",
+    "vix_change",
+    "ten_year_yield",
+    "ten_year_change_bps",
+    "inflation_series",
+    "inflation_yoy_pct",
+    "sector_leaders",
+    "sector_laggards",
+    "eps_growth_pct",
+    "eps_beat_rate_pct",
+    "banned_phrases",
+    "word_target_min",
+    "word_target_max",
+    "style_exemplars",
+    "plan_text"
+  ],
+  "policy": {
+    "forbidden_categories": [
+      "outlook",
+      "recommendations",
+      "portfolio_attribution",
+      "positions",
+      "trade_rationale"
+    ]
+  }
+}

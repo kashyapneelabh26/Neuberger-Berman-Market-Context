@@ -1,0 +1,10 @@
+{
+  "as_of_period_end": "2025-06-30",
+  "strategy_name": "NB Genesis Fund",
+  "benchmark_id": "R2000_TR",
+  "asset_class": "equities",
+  "style": {
+    "tone": "professional",
+    "word_count_target": 240
+  }
+}
