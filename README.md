@@ -36,7 +36,7 @@
 
 ```bash
 # 1) Enter repo
-cd /path/to/nb-market-context
+cd /path/to/Neuberger-Berman-Market-Context
 
 # 2) Python env + deps
 python3 -m venv .venv
@@ -44,7 +44,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3) Ingest NB style from 3 PDFs (tone seeds)
-pip install pdfplumber
 # I plan on using LLamaindex parser to extract the text from commentaries in an extension
 # copy sample commentaries into data/raw/ and then run this command to generate seeds
 python scripts/seed_style.py        # writes numbers-stripped seeds to data/seeds/
@@ -61,10 +60,13 @@ uvicorn app.main:app --reload
 
 curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=none'      -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
+#CrewAI
 curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=crewai'    -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
+#LangChain
 curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langchain' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
+#LangGraph
 curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langgraph' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
 # Swagger UI
