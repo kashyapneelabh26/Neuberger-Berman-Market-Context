@@ -8,7 +8,7 @@ req = GenerateRequest(
     asset_class="equities",
 )
 
-for backend in ["none", "crewai", "langchain"]:
+for backend in ["none", "crewai", "langchain", "langgraph"]:
     print(f"\n=== Backend: {backend} ===")
     resp = generate(req, override_backend=backend)
     print(resp.text, "\n")

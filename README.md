@@ -360,8 +360,9 @@ print(resp.text)
 ### 6.4 Running Tests
 
 ```bash
-pytest -q
-PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
+export PYTHONPATH=.
+pytest -q #Needs OpenAI API key
+python3 tests/scratch_test.py  
 ```
 
 <a id="design-decisions"></a>
