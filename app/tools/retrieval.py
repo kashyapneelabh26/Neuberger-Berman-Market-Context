@@ -3,7 +3,6 @@ from typing import List
 from pathlib import Path
 import re
 
-# Robustly locate the repo root (nb-market-context/)
 # retrieval.py -> tools -> app -> <repo_root> (parents[3])
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 

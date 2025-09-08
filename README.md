@@ -18,11 +18,11 @@
    - [Call from CLI (curl)](#call-cli)
    - [Use as a Library (Super-Agent Mode)](#use-library)
    - [Run Tests](#run-tests)
-7. [Detailed Design Decisions](#design-decisions)
+7. [Design Decisions](#design-decisions)
 8. [Key Assumptions & Trade-offs](#assumptions-tradeoffs)
-9. [Extensibility & Roadmap (What I’d Add With More Time)](#roadmap)
+9. [Extensions (What I’d Add With More Time)](#roadmap)
 10. [Operational Notes (Deployment, Observability, Security)](#ops)
-11. [Troubleshooting & FAQ](#troubleshooting)
+11. [Common Errors](#troubleshooting)
 12. [Repo Layout](#repo-layout)
 13. [API Contract](#api-contract)
 14. [Tools Inventory](#tools)
@@ -45,26 +45,30 @@ pip install -r requirements.txt
 
 # 3) Ingest NB style from 3 PDFs (tone seeds)
 pip install pdfplumber
-mkdir -p data/raw
-# Plan on using LLamaindex parser to extract the text from commentaries in an extension
-
-# copy sample commentaries into data/raw/
+# I plan on using LLamaindex parser to extract the text from commentaries in an extension
+# copy sample commentaries into data/raw/ and then run this command to generate seeds
 python scripts/seed_style.py        # writes numbers-stripped seeds to data/seeds/
 
 # 4) Set keys + mock
 export OPENAI_API_KEY='your openai key'       # needed for crewai/langchain/langgraph
-export OPENAI_MODEL=gpt-4o-mini     # or Azure deployment name
-export MOCK=true                    # use stub KPIs for demos
+export OPENAI_MODEL=gpt-4o-mini     
+export MOCK=true                    
 
 # 5) Run API
 uvicorn app.main:app --reload
 
-# 6) Run in a new terminal, from repo root
-curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langgraph' \
-  -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+# 6) Run in a new terminal, from repo root, and try all backends
+
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=none'      -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=crewai'    -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langchain' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langgraph' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
 # Swagger UI
-open http://127.0.0.1:8000/docs     # Windows: start http://127.0.0.1:8000/docs
+open http://127.0.0.1:8000/docs    
 
 ```
 
@@ -82,7 +86,7 @@ Automate generation of the **Market Context** section in monthly/quarterly portf
 
 **Key constraints addressed**  
 - **Numeric fidelity:** All numbers must come from a single KPI source of truth (benchmark return, rates, inflation, volatility, sectors, earnings). No hallucinated digits.  
-- **NB tone:** Output should read like prior NB commentaries. We bias style using sanitized **tone seeds** extracted from historical “Market Context” paragraphs (numbers removed).  
+- **NB tone:** Output should read like prior NB commentaries. I bias style using **tone seeds** extracted from historical “Market Context” paragraphs (numbers removed).  
 - **Scope discipline:** Prompts and a compliance pass forbid attribution/positioning/outlook language.  
 - **Auditability:** Prompts are versioned files; KPIs and assumptions are echoed in the response for review.
 
@@ -119,7 +123,7 @@ fetch_kpis()  ──►  KPI dict (source of truth)
 Compliance (LLM + code) ──► strip outlook/attribution, verify digits, enforce length
         │
         ▼
-                 Final Market Context text
+ Final Market Context text
 
 ```
 **Why this structure:**
@@ -186,6 +190,15 @@ Compliance (LLM + code) ──► strip outlook/attribution, verify digits, enfo
 - Compliance prompt: remove any digits not present in KPIs; strip outlook/attribution; enforce word count.
 - Post‑processing backstop: ensure the benchmark return sentence exists.
 
+### Common Queries
+- **Q:** Why do I use two LLM calls?
+  - **A:** Separation (Writer vs Compliance) improves safety, reduces redlines, and simplifies debugging.
+
+- **Q:** Can I plug in Bloomberg/FactSet?
+  - **A:** Yes. Implement provider adapters in `app/tools/data_fetchers.py` returning the same KPI schema.
+
+- **Q:** Can I add Outlook later?
+  - **A:** Yes, as a separate node with a different banned-phrase set and distinct prompts, subject to compliance review.
 
 <a id='prompts-style'> </a>
 
@@ -281,16 +294,13 @@ Compliance (LLM + code) ──► strip outlook/attribution, verify digits, enfo
         5) Tone: professional, neutral, past tense; no causal claims unless explicitly in Planner notes.
 
         Return ONLY the cleaned text.
-
-- `style_retriever.txt` → compact “NB tone charter” (system role).
-    - ```
-        Retrieve 1–2 prior "Market Context" snippets closest in benchmark and asset class. Return snippets for tone only, no numbers.
  
 
 **Style seeds from PDFs**
 - `scripts/seed_style.py` extracts 2–5 short sentences per PDF from the “Market Context” section.
 - Removes digits, dates, quarters, and outlook‑style verbs.
 - Saved to `data/seeds/*.txt` and loaded by `app/tools/retrieval.py`.
+- I would like to create an agent that does this as well as an extension.
 
 <a id='execution-usage'> </a>
 
@@ -311,20 +321,16 @@ open http://127.0.0.1:8000/docs
 
 ```bash
 # Baseline
-curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=none' \
-  -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=none'      -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
-# CrewAI
-curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=crewai' \
-  -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+#CrewAI
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=crewai'    -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
-# LangChain
-curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langchain' \
-  -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+#Langchain
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langchain' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
-# LangGraph (recommended)
-curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langgraph' \
-  -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
+#Langgraph
+curl -s -X POST 'http://127.0.0.1:8000/generate/market-context?backend=langgraph' -H 'Content-Type: application/json' -d @samples/sample_request_spx.json | jq
 
 ```
 
@@ -358,7 +364,7 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 
 <a id="design-decisions"></a>
 
-## 7. Detailed Design Decisions
+## 7. Design Decisions
 
 ### 7.1 KPI-First, Style-Second
 - **Decision:** All digits originate from a single KPI dictionary; style is layered on via sanitized exemplars.
@@ -368,27 +374,27 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 ### 7.2 Two-Step Generation (Writer → Compliance)
 - **Decision:** Separate drafting from compliance cleanup.
 - **Rationale:** Clear responsibilities, easier debugging, targeted retries.
-- **Trade-off:** +1 LLM call and a bit more latency; improved safety and control.
+- **Trade-off:** Extra LLM call and a bit more latency
 
 ### 7.3 Guardrails in Both Prompting and Code
 - **Decision:** Banned-phrase lexicon, KPI-only digit rules in prompts **and** post-processing checks.
 - **Rationale:** Dual-layer enforcement catches edge-cases a single layer might miss.
-- **Trade-off:** More components to maintain; safer outputs.
+- **Trade-off:** More components to maintain but safer outputs.
 
 ### 7.4 Prompt Files with JSON Sidecars
 - **Decision:** Store prompts in `prompts/*.txt` with `*.json` sidecars declaring variables and LLM params.
 - **Rationale:** Auditable, versioned, portable (works with CrewAI/LangChain/LangGraph).
-- **Trade-off:** More files; far better governance.
+- **Trade-off:** More files to deal with.
 
 ### 7.5 Multiple Orchestration Backends
 - **Decision:** Support `none`, `crewai`, `langchain`, `langgraph` under a common interface.
 - **Rationale:** Demonstrates breadth; lets platform teams pick based on SLOs and tooling.
-- **Trade-off:** Extra maintenance; **LangGraph** recommended for production.
+- **Trade-off:** Extra maintenance for all of these but we will only actually use one. I wanted to show a few examples so that we could compare results and see which one works best. **LangGraph** recommended for production.
 
 ### 7.6 Baseline Path (`backend=none`)
 - **Decision:** Deterministic template with KPI interpolation and minimal heuristics.
 - **Rationale:** Smoke tests, outage fallback, predictable demos.
-- **Trade-off:** Less fluent tone; perfect for CI and reliability drills.
+- **Trade-off:** Less fluent tone and is perfect for CI and reliability drills.
 
 ### 7.7 Style Seeds from PDFs (Numbers Stripped)
 - **Decision:** Extract short sentences from prior “Market Context” sections, remove digits/dates.
@@ -403,12 +409,8 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 ### 7.9 API + Library Dual-Use
 - **Decision:** FastAPI for HTTP access and importable Python functions for a super-agent.
 - **Rationale:** Fits both service and embedded modes.
-- **Trade-off:** Slight duplication of entrypoints; kept thin.
+- **Trade-off:** Slight duplication of entrypoints
 
-### 7.10 Observability/Trace Hooks (Optional)
-- **Decision:** Log KPI hash, prompt checksum, guardrail results; plan OTel spans per node.
-- **Rationale:** Aids audits and performance tuning.
-- **Trade-off:** Additional infra work; optional in prototype.
 
 
 
@@ -424,9 +426,9 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 
 ### 8.2 Trade-offs Chosen
 - **Quality vs Latency:** Two LLM passes (Writer + Compliance) chosen for higher safety.
-- **Breadth vs Simplicity:** Three agent stacks supported to match JD and showcase flexibility; **LangGraph** preferred for prod.
-- **Determinism vs Fluency:** Baseline (`none`) ensures deterministic outputs; agent paths give better prose.
-- **Generalization vs Specialization:** Fund-agnostic design; strategy-specific lexicons can be layered later.
+- **Breadth vs Simplicity:** Three agent stacks supported to match JD and showcase flexibility and **LangGraph** preferred for production.
+- **Determinism vs Fluency:** Baseline (`none`) ensures deterministic outputs but agent paths give better prose.
+- **Generalization vs Specialization:** Fund-agnostic design but strategy-specific lexicons can be layered later.
 
 ### 8.3 Unclean Data Handling:
 - **KPI fields missing:** Hard fail with validation error; do not generate prose.
@@ -443,12 +445,12 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 
 <a id="roadmap"></a>
 
-## 9. Extensibility & Roadmap (What I’d Add With More Time)
+## 9. Extensions (What I’d Add With More Time)
 
 ### 9.1 Data Integrations
 - **FRED adapters** for 10Y yield and CPI with caching and release-calendar awareness.
 - **Earnings feed** (IBES/internal): consensus growth, beat/miss rates by sector.
-- **Index & sector returns** via internal analytics or Bloomberg/FactSet with a sandbox fallback.
+- **Index & sector returns** via internal analytics or Bloomberg/FactSet with a fallback.
 
 ### 9.2 LangGraph Enhancements
 - **Fact Check (RAG) node:** retrieve internal weekly macro notes; ensure phrasing matches house views.
@@ -461,6 +463,8 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 - **Prompt governance**: sign-off workflow, version labels in outputs, and change logs.
 - **Bias/tonality monitor**: periodic audits to ensure neutrality and compliance.
 
+
+#### Not very relevant ideas right now
 ### 9.4 UX & Productivity
 - **Docs aside-panel preview**: live render vs. seeds; toggle between backends for comparison.
 - **One-click export**: Word/PowerPoint/PDF snippet with standardized formatting.
@@ -505,7 +509,7 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 - **Data lineage**: store lightweight provenance (provider, timestamp) for each KPI field.
 
 <a id="troubleshooting"></a>
-## 11. Troubleshooting & FAQ
+## 11. Common Errors
 
 ### 11.1 Common Issues
 
@@ -533,16 +537,6 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
   - **Symptom:** Multiple retries logged for compliance failures.
   - **Fix:** Lower temperature in `writer.json`, increase `max_tokens`, or reduce `word_target_max` to hit constraints more consistently.
 
-### 11.2 FAQs
-
-- **Q:** Why two LLM calls?
-  - **A:** Separation (Writer vs Compliance) improves safety, reduces redlines, and simplifies debugging.
-
-- **Q:** Can I plug in Bloomberg/FactSet?
-  - **A:** Yes. Implement provider adapters in `app/tools/data_fetchers.py` returning the same KPI schema.
-
-- **Q:** Can I add Outlook later?
-  - **A:** Yes, as a separate node with a different banned-phrase set and distinct prompts, subject to compliance review.
 
 ---
 
@@ -552,7 +546,7 @@ PYTHONPATH=. python3 tests/scratch_test.py  #needs OPENAI_API_KEY
 
 ```pgsql
 
-nb-market-context/
+Neuberger-Berman-Market-Context/
 ├─ app/
 │  ├─ main.py
 │  ├─ agent_router.py
@@ -571,14 +565,12 @@ nb-market-context/
 ├─ prompts/
 │  ├─ planner.txt / planner.json
 │  ├─ writer.txt / writer.json
-│  ├─ compliance.txt / compliance.json
-│  └─ tone_system.txt / tone_system.json
+│  └─ compliance.txt / compliance.json
 ├─ data/
 │  ├─ raw/
 │  └─ seeds/
 ├─ scripts/
-│  ├─ seed_style.py
-│  └─ sanitize_seeds.py
+│  └─ sanitize_seed_style.py
 ├─ samples/
 │  ├─ sample_request_spx.json
 │  └─ sample_request_r2k.json

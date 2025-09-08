@@ -1,1 +1,0 @@
-Retrieve 1–2 prior "Market Context" snippets closest in benchmark and asset class. Return snippets for tone only, no numbers.

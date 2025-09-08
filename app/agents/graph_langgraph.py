@@ -11,7 +11,7 @@ from ..tools import retrieval
 
 import os
 
-# single LLM config (works with OpenAI / Azure OpenAI via env)
+# single LLM config 
 llm = ChatOpenAI(model=os.getenv("OPENAI_MODEL","gpt-4o-mini"), temperature=0.2)
 
 class MCState(TypedDict):
@@ -43,12 +43,12 @@ def writer_node(state: MCState) -> MCState:
         "plan_text": plan,
     })
 
-    # 3) system tone charter (optional but recommended)
+    # 3) system tone charter
     tone_system = ""
     try:
         tone_system = Prompt("tone_system").render({"style_exemplars": style})
     except Exception:
-        pass  # if tone_system prompt not present, continue gracefully
+        pass  # if tone_system prompt not present, continue
 
     chain = ChatPromptTemplate.from_messages([
         ("system", tone_system or "Write in a professional, neutral, client-friendly tone; no outlook or attribution."),
